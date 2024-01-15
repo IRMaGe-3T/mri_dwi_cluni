@@ -79,7 +79,7 @@ Add the following path in the configuration file:
 python ./mri_dwi_cluni/main.py
 ```
 
-![Module](./src/module.png)
+![Module](./mri_dwi_cluni/module.png)
 
 Click on "open" and choose your DICOM directory.
 
