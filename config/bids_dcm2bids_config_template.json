@@ -1,0 +1,49 @@
+{
+    "descriptions": [
+        {
+            "datatype": "anat",
+            "suffix": "T1w",
+            "criteria": {
+                "SeriesDescription": "*t1_mprage_sag*"
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "custom_entities": "dir-AP",
+            "criteria": {
+            	"SeriesDescription": "*DTI_philips",
+                "ImageType": ["ORIGINAL", "PRIMARY", "DIFFUSION", "NONE"]
+            },
+            "sidecar_changes": {
+                "PhaseEncodingDirection": "j-"
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "custom_entities": "dir-AP",
+            "criteria": {
+            	"SeriesDescription": "*DTI_multishell_17_31_50_dir",
+                "ImageType": ["ORIGINAL", "PRIMARY", "DIFFUSION", "NONE"]
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "custom_entities": "dir-AP",
+            "criteria": {
+            	"SeriesDescription": "*DTI_multishell_17_31_50_dir",
+                "ImageType": ["ORIGINAL", "PRIMARY", "DIFFUSION", "NONE", "ND", "NORM", "BS", "MFSPLIT"]
+            }
+        },
+        {
+            "datatype": "fmap",
+            "suffix": "epi",
+            "custom_entities": "dir-PA",
+            "criteria": {
+            	"SeriesDescription": "*DTI_multishell_17_31_50_dir_P*"
+            }
+        }
+    ]
+}

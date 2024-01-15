@@ -1,0 +1,14 @@
+[project]
+name = "mri_dwi_cluni"
+version = "1.1.1"
+description = "Do preprocesing and lauch TractSeg sofware for multishell DWI data"
+authors = ["Emmanuelle Gourieux <gourieux.emmanuelle@gmail.com>"]
+dependencies = [
+        "argparse",
+        "json",
+        "pydicom",
+        "unidecode",
+        "dcm2bids>=3.1.1",
+        "TractSeg",
+        "pyQt5"
+    ]

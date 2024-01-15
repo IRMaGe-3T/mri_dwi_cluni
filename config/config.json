@@ -1,0 +1,5 @@
+{
+    "OutputDirectory": "/home/gourieuxe/code/directory_bids_test",
+    "BidsConfigFile": "/home/gourieuxe/apps/mri_dwi_cluni/config/bids_dcm2bids_config_template.json",
+    "WorkingDirectory": "/home/gourieuxe/code/directory_bids_test"
+}
