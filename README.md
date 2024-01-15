@@ -3,15 +3,23 @@
 Pre-process MRI diffusion data using [MRTrix](https://mrtrix.readthedocs.io) software
 and run [TractSeg](https://github.com/MIC-DKFZ/TractSeg) software to get white matter bundle.
 
+Table of contents
+
+1. [Disclaimer](#disclaimer)
+2. [How it works](#how-it-works)
+3. [How to use](#how-to-use)
+
+<a name="disclaimer"></a>
 ## Disclaimer
 This little application has been developed for a specific use and is not intended to be modular.
 It will only work if there is only one diffusion image, one anatomical image (optional) and one pepolar image (optional).
 
+<a name="how-it-works"></a>
 ## How it works
 
 ### Data conversion
 
-You only need to give the DICOM directoty path and the module will organize your data in BIDS (using [dcm2bids](https://unfmontreal.github.io/Dcm2Bids)). A [dcm2bids configuration file](https://unfmontreal.github.io/Dcm2Bids/3.1.1/how-to/create-config-file/) should be specified in the `BidsConfigFile` field in the [configuration file](./config/config.json).
+You only need to give the DICOM directory path and the module will organize your data in BIDS (using [dcm2bids](https://unfmontreal.github.io/Dcm2Bids)). A [dcm2bids configuration file](https://unfmontreal.github.io/Dcm2Bids/3.1.1/how-to/create-config-file/) should be specified in the `BidsConfigFile` field in the [configuration file](./config/config.json).
 
 /!\ For Philips data, as the phase encoding direction cannot be found in the DICOM, you need to add the information in the dcm2bids configuration file using [sidecar_changes field](https://unfmontreal.github.io/Dcm2Bids/3.1.1/how-to/create-config-file/#sidecar_changes-id-and-intendedfor) (see [dcm2bids configuration file template](./config/bids_dcm2bids_config_template.json))
 
@@ -34,7 +42,7 @@ For diffusion image, the following preprocessing are done:
 - Bias field correction
 - Creation of a brain mask
 
-Then the orientation of all fibers crossing is estimated in each voxel and the peaks of the spherical harmonic function in each voxel are extracted.
+Then the fibers orientation distribution (FOD) is estimated and the peaks of the spherical harmonic function in each voxel are extracted.
 
 The CSD peaks are provide to TractSeg to get white matter bundle.
 
@@ -44,6 +52,7 @@ If there is an anatomical image, the image in co-register to the diffusion image
 
 All the outputs are in the directory `/path/to/bids/directory/derivatives/sub-*/ses-*/`.
 
+<a name="how-to-use"></a>
 ## How to use
 
 ### Clone this repository
