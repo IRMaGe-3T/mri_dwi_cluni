@@ -96,20 +96,24 @@ Click on "run.
 
 ## Requirements
 
-[MRTrix](https://mrtrix.readthedocs.io) software should be install and it should be possible to run the MRTrix command from the terminal used to run the module. You can try :
+[MRTrix](https://mrtrix.readthedocs.io) software should be install and it should be possible to run the MRTrix commands from the terminal. You can try in a terminal:
 
 ```bash
 mrinfo
 ```
 
-[TractSeg](https://github.com/MIC-DKFZ/TractSeg) should be install as required (so PyTorch should be install)
+[TractSeg](https://github.com/MIC-DKFZ/TractSeg) should be install as required (so PyTorch should be install) and it should be possible to run the TractSeg commands from the terminal.
 
+[ANTs](http://stnava.github.io/ANTs/) software should be install and it should be possible to run the ANTs commands from the terminal.
+
+[dcm2niix](https://github.com/rordenlab/dcm2niix/releases) software should be install (release >=version 20-july-2022)
+
+Others requirements (python libraries):
 - argparse
 - json
 - pydicom
 - unidecode
 - dcm2bids>=3.1.1
-- dcm2niix
 - TractSeg
 - MRTrix>=3.0.2
 - pyQt5
