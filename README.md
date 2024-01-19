@@ -44,7 +44,7 @@ For diffusion image, the following preprocessing are done:
 
 Then the fibers orientation distribution (FOD) is estimated and the peaks of the spherical harmonic function in each voxel are extracted.
 
-The CSD peaks are provide to TractSeg to get white matter bundle.
+The CSD peaks are provide to TractSeg to create bundle-specific tractograms
 
 If there is an anatomical image, the image in co-register to the diffusion image.
 
