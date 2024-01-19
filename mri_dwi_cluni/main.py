@@ -6,6 +6,7 @@ mrtrix: https://mrtrix.readthedocs.io
 TracSeg: https://github.com/MIC-DKFZ/TractSeg
 """
 
+import glob
 import json
 import os
 import shutil
@@ -36,6 +37,7 @@ class App(QMainWindow):
         # Connect sigans and slots
         self.pushButton_browser.clicked.connect(self.browse_directory)
         self.pushButton_run.clicked.connect(self.launch_processing)
+        self.pushButton_mrview.clicked.connect(self.launch_mrview)
 
         # Init variable
         self.dicom_directory = ""
@@ -162,6 +164,28 @@ class App(QMainWindow):
                     "QProgressBar::chunk { background-color: green; }"
                 )
                 print("\n Processing done")
+
+                # Launch mrview
+                image = glob.glob(
+                    os.path.join(
+                        analysis_directory, "sub-*_ses-*_dwi_*unbias.mif"
+                    )
+                )[0]
+                tck_cst_left = os.path.join(
+                    analysis_directory,
+                    "tractseg_output",
+                    "TOM_trackings",
+                    "CST_left.tck",
+                )
+                tck_cst_right = os.path.join(
+                    analysis_directory,
+                    "tractseg_output",
+                    "TOM_trackings",
+                    "CST_right.tck",
+                )
+                tracks = [tck_cst_left, tck_cst_right]
+                if image and tracks:
+                    self.launch_mrview(image=image, tracks=tracks)
             except Exception as e:
                 self.error(e)
 
@@ -171,6 +195,16 @@ class App(QMainWindow):
                 "QProgressBar::chunk { background-color: red; }"
             )
             self.show_error_message_box(msg)
+
+    def launch_mrview(self, image=None, tracks=None):
+        """Launch mrview"""
+        cmd = "mrview -mode 2"
+        if image:
+            cmd += " -load " + image
+        if tracks:
+            for track in tracks:
+                cmd += " -tractography.load " + track
+        os.system(cmd)
 
     def error(self, message):
         """Error function"""
