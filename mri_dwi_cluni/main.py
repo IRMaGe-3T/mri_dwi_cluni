@@ -17,6 +17,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import QDir
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 from PyQt5.uic import loadUi
+from useful import execute_command
 
 
 class App(QMainWindow):
@@ -88,6 +89,25 @@ class App(QMainWindow):
                     raise Exception(msg)
                 patient_name = info["sub_name"]
                 sess_name = info["sess_name"]
+                # Copy DICOM directory in sourcedata
+                sourcedata_directory = os.path.join(
+                    out_directory,
+                    "sourcedata",
+                    "sub-" + patient_name + "_ses-" + sess_name,
+                )
+                if not os.path.exists(sourcedata_directory):
+                    os.makedirs(sourcedata_directory)
+                    shutil.copytree(
+                        dicom_directory,
+                        os.path.join(sourcedata_directory, "DICOM"),
+                    )
+                    os.chdir(sourcedata_directory)
+                    cmd = ["tar", "czvf", "DICOM.tar.gz", "DICOM"]
+                    result, stderrl, sdtoutl = execute_command(cmd)
+
+                    cmd = ["rm", "-rf", "DICOM"]
+                    result, stderrl, sdtoutl = execute_command(cmd)
+
                 self.progressBar_run.setValue(15)
 
                 # Create analysis directories
