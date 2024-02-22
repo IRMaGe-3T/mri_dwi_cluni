@@ -4,6 +4,7 @@ Functions to used TracSeg software:
     - run_tractseg
 
 """
+import logging
 
 from useful import check_file_ext, execute_command
 
@@ -15,10 +16,12 @@ def run_tractseg(peaks):
     Run all the command from TractSeg sofwrae.
     Peaks image should be in NIfTI format
     """
+    mylog = logging.getLogger("custom_logger")
+    mylog.info("Launch processing FOD")
 
     valid_bool, in_ext, file_name = check_file_ext(peaks, EXT_NIFTI)
     if not valid_bool:
-        msg = "\nInput image format is not " "recognized (NIfTI needed)...!"
+        msg = "\nInput image format is not recognized (NIfTI needed)...!"
         return 0, msg
 
     cmd = ["TractSeg", "-i", peaks, "--output_type", "tract_segmentation"]
@@ -47,4 +50,5 @@ def run_tractseg(peaks):
         msg = f"Can not run TractSeg uncertainty (exit code {result})"
         return 0, msg
     msg = "Run TracSeg done"
+    mylog.info(msg)
     return 1, msg

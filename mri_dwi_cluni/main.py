@@ -8,9 +8,12 @@ TracSeg: https://github.com/MIC-DKFZ/TractSeg
 
 import glob
 import json
+import logging
 import os
 import shutil
 import sys
+import time
+from datetime import datetime
 
 from bids_conversion import convert_to_bids
 from main_white_matter_bundle import run_white_matter_bundle
@@ -149,11 +152,43 @@ class App(QMainWindow):
                 # (mrtriw will create temp directory in it)
                 os.chdir(working_directory)
 
+                # Add log
+                now = datetime.now()
+                log_file = os.path.join(
+                    analysis_directory,
+                    now.strftime("%Y%m%d") + "_processing.log",
+                )
+                mylog = logging.getLogger("custom_logger")
+                mylog.setLevel(logging.DEBUG)
+                handler = logging.FileHandler(log_file)
+                handler.setLevel(logging.DEBUG)
+                handler.setFormatter(
+                    logging.Formatter(
+                        "%(asctime)s:%(levelname)s:%(message)s",
+                        datefmt="%H:%M:%S",
+                    )
+                )
+                mylog.addHandler(handler)
+                # Print also into terminal
+                handler_print = logging.StreamHandler()
+                handler_print.setLevel(logging.INFO)
+                handler_print.setFormatter(
+                    logging.Formatter(
+                        "%(asctime)s:%(levelname)s:%(message)s",
+                        datefmt="%H:%M:%S",
+                    )
+                )
+                mylog.addHandler(handler_print)
+
+                start = time.time()
+                mylog.info("Started at %s", now.strftime("%d/%m/%Y %H:%M:%S"))
+
                 # Launch processing
                 result, msg = run_white_matter_bundle(
                     out_directory, patient_name, sess_name
                 )
                 if result == 0:
+                    mylog.error(msg)
                     self.error(msg)
                     raise Exception(msg)
 
@@ -163,7 +198,13 @@ class App(QMainWindow):
                 self.progressBar_run.setStyleSheet(
                     "QProgressBar::chunk { background-color: green; }"
                 )
-                print("\n Processing done")
+                end = time.time()
+                mylog.info(
+                    "Processing finished at %s",
+                    now.strftime("%d/%m/%Y %H:%M:%S"),
+                )
+                total_time = start - end
+                mylog.info("Processing done in %f seconds", total_time)
 
                 # Launch mrview
                 image = glob.glob(
@@ -187,6 +228,7 @@ class App(QMainWindow):
                 if image and tracks:
                     self.launch_mrview(image=image, tracks=tracks)
             except Exception as e:
+                mylog.error(e)
                 self.error(e)
 
         else:

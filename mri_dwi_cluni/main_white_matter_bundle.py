@@ -5,6 +5,7 @@ Main function to get white matter bunble using MRTRix and TractSeg:
 """
 import glob
 import json
+import logging
 import os
 import shutil
 
@@ -18,6 +19,7 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     """
     Get all data and run preprocessing and processing
     """
+    mylog = logging.getLogger("custom_logger")
     analysis_directory = os.path.join(
         out_directory, "derivatives", "sub-" + patient_name, "ses-" + sess_name
     )
@@ -38,7 +40,7 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
             "please use a DICOM directory with diffusion image"
         )
         return 0, msg
-    elif len(all_sequences_dwi) != 1:
+    if len(all_sequences_dwi) != 1:
         msg = (
             "Too many diffusion sequences in DICOM directoty, "
             "please select only one"
@@ -116,12 +118,14 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
         )
         if result == 0:
             return 0, msg
-    print(
+
+    msg = (
         "\n Conversion done, "
         f"the following sequences have been found: {sequences_found}"
     )
+    mylog.info(msg)
 
-    print("\n----------PROCESSING----------")
+    mylog.info("\n----------Start PROCESSING----------")
     print("It will take time...")
     # Preprocessing
     if in_pepolar:
@@ -166,10 +170,11 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     shutil.copy(dwi_preproc, analysis_directory)
 
     # Tractseg
-    print("\n----------Tractseg----------")
+    mylog.info("\n----------Start TractSeg----------")
     result, msg = run_tractseg(peaks_nii)
     if result == 0:
         print("\nIssue during TracSeg")
         return 0, msg
-    msg = "\nProcesind done"
+    msg = "\nProcessing done"
+    mylog.info(msg)
     return 1, msg

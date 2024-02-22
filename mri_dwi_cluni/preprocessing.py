@@ -7,6 +7,7 @@ Functions for preprocessing DWI data:
 
 """
 
+import logging
 import os
 
 from useful import check_file_ext, convert_mif_to_nifti, execute_command
@@ -62,6 +63,8 @@ def run_preproc_dwi(
     Run preproc for whole brain diffusion using MRtrix command
     """
     info = {}
+    mylog = logging.getLogger("custom_logger")
+    mylog.info("Launch preprocessing DWI")
     # Get files name
     dir_name = os.path.dirname(in_dwi)
     valid_bool, in_ext, file_name = check_file_ext(in_dwi, {"MIF": "mif"})
@@ -117,7 +120,7 @@ def run_preproc_dwi(
         # In this case issue with dwifslpreproc
         # use directly corrected image for in_dwi
         dwi_out = in_dwi
-        print("Motion distorsion correction not done")
+        mylog.info("Motion distorsion correction not done")
     else:
         # fslpreproc (topup and Eddy)
         dwi_out = dwi_degibbs.replace(".mif", "_fslpreproc.mif")
@@ -157,7 +160,8 @@ def run_preproc_dwi(
         return 0, msg
 
     info = {"dwi_preproc": dwi_unbias, "brain_mask": dwi_mask}
-    msg = "Preprocessing done"
+    msg = "Preprocessing DWI done"
+    mylog.info(msg)
     return 1, msg, info
 
 
@@ -167,6 +171,8 @@ def run_preproc_t1(in_t1, in_dwi):
     """
     info = {}
     out_directory = os.path.dirname(in_t1)
+    mylog = logging.getLogger("custom_logger")
+    mylog.info("Launch preprocessing T1w")
     # Extract b0 from dwi and average data
     in_dwi_b0 = in_dwi.replace(".mif", "_bzero.mif")
     cmd = ["dwiextract", in_dwi, in_dwi_b0, "-bzero"]
@@ -265,4 +271,5 @@ def run_preproc_t1(in_t1, in_dwi):
         return 0, msg, info
     info = {"in_t1_coreg": in_t1_coreg}
     msg = "Preprocessing T1 done"
+    mylog.info(msg)
     return 1, msg, info

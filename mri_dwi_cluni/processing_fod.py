@@ -3,6 +3,7 @@
 Functions to get FOD from DWI data:
     - run_processing_fod
 """
+import logging
 import os
 
 from useful import execute_command
@@ -15,6 +16,8 @@ def run_processing_fod(in_dwi, brain_mask):
     """
     info = {}
     dir_name = os.path.dirname(in_dwi)
+    mylog = logging.getLogger("custom_logger")
+    mylog.info("Launch processing FOD")
 
     # DWI response
     wm = os.path.join(dir_name, "response_wm.txt")
@@ -87,4 +90,5 @@ def run_processing_fod(in_dwi, brain_mask):
         return 0, msg, info
     info = {"peaks": peaks}
     msg = "FOD estimation done"
+    mylog.info(msg)
     return 1, msg, info
