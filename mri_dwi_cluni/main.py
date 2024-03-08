@@ -21,7 +21,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import QDir
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 from PyQt5.uic import loadUi
-from useful import execute_command
+from useful import check_file_ext, execute_command
 
 
 class App(QMainWindow):
@@ -56,21 +56,27 @@ class App(QMainWindow):
 
     def browse_directory(self):
         """Browse DICOM directory"""
-        directory = QFileDialog.getExistingDirectory(
-            self, "Select a directory", QDir.homePath()
-        )
-        if directory:
-            self.dicom_directory = directory
-            self.textEdit_output_browser.setText(self.dicom_directory)
-            self.pushButton_run.setEnabled(True)
-            self.reset_progress_bar()
+        # directory = QFileDialog.getExistingDirectory(
+        #     self, "Select a directory", QDir.homePath()
+        # )
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.ExistingFiles)
+        file_dialog.setViewMode(QFileDialog.List)
+        file_dialog.setDirectory(QDir.homePath())
+        file_dialog.setNameFilter("ZIP files (*.zip)")
+
+        if file_dialog.exec_():
+            if file_dialog.selectedFiles():
+                self.dicom_directory = file_dialog.selectedFiles()[0]
+                self.textEdit_output_browser.setText(self.dicom_directory)
+                self.pushButton_run.setEnabled(True)
+                self.reset_progress_bar()
 
     def launch_processing(self):
         """Launch processing"""
         if self.dicom_directory:
             self.reset_progress_bar()
             try:
-                dicom_directory = self.dicom_directory
                 # Configuration
                 config_file = os.path.join(
                     os.path.dirname(self.dir_code_path),
@@ -83,6 +89,31 @@ class App(QMainWindow):
                     out_directory = data["OutputDirectory"]
                     working_directory = data["WorkingDirectory"]
                 self.progressBar_run.setValue(5)
+
+                # Unzip dicom directory in temporary folder
+                valid_bool, in_ext, file_name = check_file_ext(
+                    self.dicom_directory, {"ZIP": "zip"}
+                )
+                if not valid_bool:
+                    msg = "DICOM directory is not a zip folder"
+                    self.error(msg)
+                    raise Exception(msg)
+
+                working_directory_tmp = os.path.join(working_directory, "tmp")
+                if not os.path.exists(working_directory_tmp):
+                    os.makedirs(working_directory_tmp)
+                cmd = [
+                    "unzip",
+                    self.dicom_directory,
+                    "-d",
+                    working_directory_tmp,
+                ]
+                dicom_directory = os.path.join(
+                    working_directory_tmp, file_name
+                )
+                result, stderrl, sdtoutl = execute_command(cmd)
+                while not os.path.exists(dicom_directory):
+                    time.sleep(2)
 
                 # BIDS conversion
                 print("\n----------CONVERSION----------")
@@ -109,9 +140,16 @@ class App(QMainWindow):
                     os.chdir(sourcedata_directory)
                     cmd = ["tar", "czvf", "DICOM.tar.gz", "DICOM"]
                     result, stderrl, sdtoutl = execute_command(cmd)
+                    while not os.path.exists(
+                        os.path.join(sourcedata_directory, "DICOM.tar.gz")
+                    ):
+                        time.sleep(2)
 
                     cmd = ["rm", "-rf", "DICOM"]
                     result, stderrl, sdtoutl = execute_command(cmd)
+
+                # Remove tpm folder
+                shutil.rmtree(working_directory_tmp)
 
                 self.progressBar_run.setValue(15)
 
@@ -136,6 +174,7 @@ class App(QMainWindow):
                         response = self.show_confirmation_box(msg)
                         if response == QMessageBox.Cancel:
                             print("Processing cancelled")
+                            self.reset_progress_bar()
                             return
                         else:
                             # Remove old data
@@ -159,9 +198,9 @@ class App(QMainWindow):
                     now.strftime("%Y%m%d") + "_processing.log",
                 )
                 mylog = logging.getLogger("custom_logger")
-                mylog.setLevel(logging.DEBUG)
+                mylog.setLevel(logging.INFO)
                 handler = logging.FileHandler(log_file)
-                handler.setLevel(logging.DEBUG)
+                handler.setLevel(logging.INFO)
                 handler.setFormatter(
                     logging.Formatter(
                         "%(asctime)s:%(levelname)s:%(message)s",
@@ -203,8 +242,8 @@ class App(QMainWindow):
                     "Processing finished at %s",
                     now.strftime("%d/%m/%Y %H:%M:%S"),
                 )
-                total_time = start - end
-                mylog.info("Processing done in %f seconds", total_time)
+                total_time = (end - start) / 60
+                mylog.info("Processing done in %f minutes", total_time)
 
                 # Launch mrview
                 image = glob.glob(

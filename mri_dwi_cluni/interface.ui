@@ -19,8 +19,8 @@
      <rect>
       <x>20</x>
       <y>10</y>
-      <width>331</width>
-      <height>271</height>
+      <width>341</width>
+      <height>291</height>
      </rect>
     </property>
     <property name="font">
@@ -53,7 +53,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Select your DICOM directory :</string>
+         <string>Select your DICOM directory ( .zip ) :</string>
         </property>
        </widget>
       </item>
@@ -85,8 +85,8 @@
           <rect>
            <x>0</x>
            <y>-60</y>
-           <width>311</width>
-           <height>131</height>
+           <width>321</width>
+           <height>151</height>
           </rect>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout">
