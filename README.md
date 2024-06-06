@@ -58,7 +58,7 @@ All the outputs are in the directory `/path/to/bids/directory/derivatives/sub-*/
 ### Clone this repository
 
 ```bash
-git clone git@github.com:manuegrx/mri_dwi_cluni.git
+git clone git@github.com:IRMaGe-3T/mri_dwi_cluni.git
 ```
 
 ### Install python requirements
