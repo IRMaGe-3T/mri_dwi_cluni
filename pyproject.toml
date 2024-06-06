@@ -2,7 +2,7 @@
 name = "mri_dwi_cluni"
 version = "1.1.1"
 description = "Do preprocesing and lauch TractSeg sofware for multishell DWI data"
-authors = ["Emmanuelle Gourieux <gourieux.emmanuelle@gmail.com>"]
+authors = ["Emmanuelle Gourieux <47973414+manuegrx@users.noreply.github.com>"]
 dependencies = [
         "argparse",
         "json",
