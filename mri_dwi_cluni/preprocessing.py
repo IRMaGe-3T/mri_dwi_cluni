@@ -9,6 +9,7 @@ Functions for preprocessing DWI data:
 
 import logging
 import os
+import shutil
 
 from useful import check_file_ext, convert_mif_to_nifti, execute_command
 
@@ -87,13 +88,22 @@ def run_preproc_dwi(
 
     # Create b0 pair for motion distortion correction
     if in_pepolar:
-        # Average b0 pepolar
-        in_pepolar_mean = in_pepolar.replace(".mif", "_mean.mif")
-        cmd = ["mrmath", in_pepolar, "mean", in_pepolar_mean, "-axis", "3"]
+        # Average b0 pepolar if needed
+        cmd = ["mrinfo", in_pepolar, "-ndim"]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch mrmath (exit code {result})"
+            msg = f"Can not get info for {in_pepolar}"
             return 0, msg, info
+        ndim = sdtoutl.decode("utf-8").replace("\n", "").split(" ")
+        in_pepolar_mean = in_pepolar.replace(".mif", "_mean.mif")
+        if ndim == "4":
+            cmd = ["mrmath", in_pepolar, "mean", in_pepolar_mean, "-axis", "3"]
+            result, stderrl, sdtoutl = execute_command(cmd)
+            if result != 0:
+                msg = f"Can not lunch copy (exit code {result})"
+                return 0, msg, info
+        else:
+            shutil.copy(in_pepolar, in_pepolar_mean)
         # Extract b0 from dwi and average data
         in_dwi_b0 = in_dwi.replace(".mif", "_bzero.mif")
         cmd = ["dwiextract", in_dwi, in_dwi_b0, "-bzero"]
