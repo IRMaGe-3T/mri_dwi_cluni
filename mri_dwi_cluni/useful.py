@@ -161,8 +161,8 @@ def get_shell(in_file):
         msg = f"Can not get info for {in_file}"
         return 0, msg, shell
     shell = sdtoutl.decode("utf-8").replace("\n", "").split(" ")
+    shell = [i for i in shell if i != ""]
     msg = f"Shell found for {in_file}"
-
     return 1, msg, shell
 
 

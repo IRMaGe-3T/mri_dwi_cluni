@@ -21,7 +21,7 @@ def run_processing_fod(in_dwi, brain_mask):
 
     # Different processing if multi-shell or single shell
     result, msg, shell = get_shell(in_dwi)
-    shell = [bval for bval in shell if bval != "0" and bval != ""]
+    shell = [bval for bval in shell if float(bval) < 5 and bval != ""]
     if len(shell) > 1:
         # DWI response
         wm = os.path.join(dir_name, "response_wm.txt")
