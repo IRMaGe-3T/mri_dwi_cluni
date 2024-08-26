@@ -113,11 +113,22 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
 
     in_pepolar = None
     if in_pepolar_nifti:
-        result, msg, in_pepolar = convert_nifti_to_mif(
-            in_pepolar_nifti, preproc_directory, diff=False
-        )
-        if result == 0:
-            return 0, msg
+        # Sometime the fmap could be a dwi reverse with all shell
+        # we choose to extract only b0 but we need to convert in mif
+        # as a dwi
+        bvec = in_pepolar_nifti.replace("nii.gz", "bvec")
+        if os.path.exists(bvec):
+            result, msg, in_pepolar = convert_nifti_to_mif(
+                in_pepolar_nifti, preproc_directory, diff=True
+            )
+            if result == 0:
+                return 0, msg
+        else:
+            result, msg, in_pepolar = convert_nifti_to_mif(
+                in_pepolar_nifti, preproc_directory, diff=False
+            )
+            if result == 0:
+                return 0, msg
 
     msg = (
         "\n Conversion done, "

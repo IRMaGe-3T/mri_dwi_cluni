@@ -11,7 +11,8 @@ import logging
 import os
 import shutil
 
-from useful import check_file_ext, convert_mif_to_nifti, execute_command
+from useful import (check_file_ext, convert_mif_to_nifti, execute_command,
+                    get_shell)
 
 EXT = {"NIFTI_GZ": "nii.gz", "NIFTI": "nii"}
 
@@ -88,15 +89,33 @@ def run_preproc_dwi(
 
     # Create b0 pair for motion distortion correction
     if in_pepolar:
+        # Check if pepolar contains several shell, if yes extract b0
+        result, msg, shell = get_shell(in_pepolar)
+        shell = [bval for bval in shell if bval != "0" and bval != ""]
+        if len(shell) > 0:
+            in_pepolar_bzero = in_pepolar.replace(".mif", "_bzero.mif")
+            print("\nfmaps contains several shell. b0 must be extracted")
+            # Extraction b0
+            if not os.path.exists(in_pepolar_bzero):
+                cmd = ["dwiextract", in_pepolar, in_pepolar_bzero, "-bzero"]
+                result, stderrl, sdtoutl = execute_command(cmd)
+                if result != 0:
+                    msg = f"\nCan not launch dwicat (exit code {result})"
+                else:
+                    in_pepolar = in_pepolar_bzero
+                    print("\nExtraction successfull")
+
         # Average b0 pepolar if needed
         cmd = ["mrinfo", in_pepolar, "-ndim"]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
             msg = f"Can not get info for {in_pepolar}"
             return 0, msg, info
-        ndim = sdtoutl.decode("utf-8").replace("\n", "").split(" ")
-        in_pepolar_mean = in_pepolar.replace(".mif", "_mean.mif")
-        if ndim == "4":
+
+        ndim = int(sdtoutl.decode("utf-8").replace("\n", ""))
+        in_pepolar_b0 = in_pepolar.replace(".mif", "_bzero.mif")
+        in_pepolar_mean = in_pepolar_b0.replace(".mif", "_mean.mif")
+        if ndim == 4:
             cmd = ["mrmath", in_pepolar, "mean", in_pepolar_mean, "-axis", "3"]
             result, stderrl, sdtoutl = execute_command(cmd)
             if result != 0:
