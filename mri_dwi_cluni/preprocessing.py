@@ -3,7 +3,7 @@
 Functions for preprocessing DWI data:
     - get_dwifslpreproc_command
     - run_preproc_dwi
-    - run_preproc_t1
+    - run_preproc_anat
 
 """
 
@@ -11,7 +11,8 @@ import logging
 import os
 import shutil
 
-from useful import (check_file_ext, convert_mif_to_nifti, execute_command,
+from useful import (check_file_ext, convert_mif_to_nifti,
+                    convert_nifti_to_mif, execute_command,
                     get_shell)
 
 EXT = {"NIFTI_GZ": "nii.gz", "NIFTI": "nii"}
@@ -194,12 +195,12 @@ def run_preproc_dwi(
     return 1, msg, info
 
 
-def run_preproc_t1(in_t1, in_dwi):
+def run_preproc_anat(in_anat, in_dwi):
     """
-    Coregister T1w to DWI
+    Coregister anat to DWI
     """
     info = {}
-    out_directory = os.path.dirname(in_t1)
+    out_directory = os.path.dirname(in_anat)
     mylog = logging.getLogger("custom_logger")
     mylog.info("Launch preprocessing T1w")
     # Extract b0 from dwi and average data
@@ -219,8 +220,8 @@ def run_preproc_t1(in_t1, in_dwi):
         in_dwi_b0_mean, out_directory, diff=False
     )
     # Creating tissue boundaries
-    tissue_type = in_t1.replace(".nii.gz", "_5tt.nii.gz")
-    cmd = ["5ttgen", "fsl", in_t1, tissue_type]
+    tissue_type = in_anat.replace(".nii.gz", "_5tt.nii.gz")
+    cmd = ["5ttgen", "fsl", in_anat, tissue_type]
     result, stderrl, sdtoutl = execute_command(cmd)
     if result != 0:
         msg = f"Can not lunch 5ttgen (exit code {result})"
@@ -264,14 +265,14 @@ def run_preproc_t1(in_t1, in_dwi):
     if result != 0:
         msg = f"Can not lunch transformconvert (exit code {result})"
         return 0, msg, info
-    in_t1_coreg = in_t1.replace(".nii.gz", "_coreg_dwi.mif")
+    in_anat_coreg = in_anat.replace(".nii.gz", "_coreg_dwi.mif")
     cmd = [
         "mrtransform",
-        in_t1,
+        in_anat,
         "-linear",
         diff2struct,
         "-inverse",
-        in_t1_coreg,
+        in_anat_coreg,
     ]
     result, stderrl, sdtoutl = execute_command(cmd)
     if result != 0:
@@ -298,7 +299,59 @@ def run_preproc_t1(in_t1, in_dwi):
     if result != 0:
         msg = f"Can not lunch 5tt2gmwmi (exit code {result})"
         return 0, msg, info
-    info = {"in_t1_coreg": in_t1_coreg}
+    info = {"in_anat_coreg": in_anat_coreg}
+    info["diff2struct"] = diff2struct
     msg = "Preprocessing T1 done"
     mylog.info(msg)
     return 1, msg, info
+
+
+def run_coreg_to_diff(in_seq, in_anat, diff2struct):
+    """
+    Coregister in_seq to DWI using mrtrix transform matrix  
+    """
+    info = {}
+    if ".gz" in in_seq:
+        ext = in_seq.split(".gz")[0].split(".")[-1] + ".gz"
+    else:
+        ext = in_seq.split(".")[-1]
+    if ext not in ["nii", "nii.gz"]:
+        msg = "in_seq should be in nifti format"
+        return 0, msg, info
+    # Coreg in_seq to in_in_anat
+    in_seq_coreg_t1_nii = in_seq.replace("." + ext, "_coreg_t1." + ext )
+    cmd = [
+        "flirt",
+        "-in",
+        in_seq,
+        "-ref",
+        in_anat,
+        "-dof",
+        "6", 
+        "-out",
+        in_seq_coreg_t1_nii
+    ]
+    result, stderrl, sdtoutl = execute_command(cmd)
+    if result != 0:
+        msg = f"Can not lunch flirt (exit code {result})"
+        return 0, msg, info
+    out_directory = os.path.dirname(in_seq_coreg_t1_nii)
+    result, msg, in_seq_coreg_t1 = convert_nifti_to_mif(
+        in_seq_coreg_t1_nii, out_directory, diff=False)
+    # Coreg to DWI
+    in_seq_coreg_dwi = in_seq.replace("." + ext, "_coreg_dwi.mif")
+    cmd = [
+        "mrtransform",
+        in_seq_coreg_t1,
+        "-linear",
+        diff2struct,
+        "-inverse",
+        in_seq_coreg_dwi,
+    ]
+    result, stderrl, sdtoutl = execute_command(cmd)
+    if result != 0:
+        msg = "Can not lunch mrtransform (exit code {result})"
+        return 0, msg, info
+    msg = "Coregistration done"
+    info["in_seq_coreg"] = in_seq_coreg_dwi
+    return result, msg, info

@@ -9,7 +9,7 @@ import logging
 import os
 import shutil
 
-from preprocessing import run_preproc_dwi, run_preproc_t1
+from preprocessing import run_preproc_dwi, run_preproc_anat, run_coreg_to_diff
 from processing_fod import run_processing_fod
 from processing_tractseg import run_tractseg
 from useful import convert_mif_to_nifti, convert_nifti_to_mif, get_shell
@@ -49,6 +49,19 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     in_dwi_nifti = all_sequences_dwi[0]
     sequences_found.append("DWI")
 
+    all_sequences_flair= [
+        seq for seq in all_sequences if "FLAIR" in seq.split("/")[-1]
+    ]
+    if len(all_sequences_flair) == 0:
+        in_flair_nifti = None
+    else:
+        in_flair_nifti = all_sequences_flair[0]
+        shutil.copy(in_flair_nifti, preproc_directory)
+        in_flair_nifti = os.path.join(
+            preproc_directory, in_flair_nifti.split("/")[-1]
+        )
+        sequences_found.append("FLAIR")
+
     all_sequences_t1 = [
         seq for seq in all_sequences if "T1w" in seq.split("/")[-1]
     ]
@@ -59,10 +72,22 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
         )
         return 0, msg
     if len(all_sequences_t1) == 0:
-        in_t1w_nifti = None
+        # Check if there is other "anat":
+        if in_flair_nifti:
+            in_main_anat_nifti = in_flair_nifti
+            # In this case in_flair_nifti = None
+            # to avoid to do coregistration
+            in_flair_nifti = None
+        else:
+            in_main_anat_nifti = None
     else:
-        in_t1w_nifti = all_sequences_t1[0]
+        in_main_anat_nifti = all_sequences_t1[0]
         sequences_found.append("T1w")
+        shutil.copy(in_main_anat_nifti, preproc_directory)
+        in_main_anat_nifti = os.path.join(
+            preproc_directory, in_main_anat_nifti.split("/")[-1]
+        )
+
 
     all_sequences_pepolar = [
         seq for seq in all_sequences if "epi" in seq.split("/")[-1]
@@ -102,11 +127,10 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
         SHELL = True
     else:
         SHELL = False
-    in_t1w = None
-    if in_t1w_nifti:
-        shutil.copy(in_t1w_nifti, preproc_directory)
-        result, msg, in_t1w = convert_nifti_to_mif(
-            in_t1w_nifti, preproc_directory, diff=False
+    in_main_anat = None
+    if in_main_anat_nifti:
+        result, msg, in_main_anat = convert_nifti_to_mif(
+            in_main_anat_nifti, preproc_directory, diff=False
         )
         if result == 0:
             return 0, msg
@@ -170,12 +194,21 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     )
 
     # T1 coregistration
-    if in_t1w:
-        result, msg, info = run_preproc_t1(
-            in_t1w.replace("mif", "nii.gz"), dwi_preproc
+    if in_main_anat:
+        result, msg, info = run_preproc_anat(
+            in_main_anat.replace("mif", "nii.gz"), dwi_preproc
         )
-        in_t1_coreg = info["in_t1_coreg"]
+        in_t1_coreg = info["in_anat_coreg"]
+        diff2struct = info["diff2struct"]
         shutil.copy(in_t1_coreg, analysis_directory)
+
+        # Coregister others seq to DWI
+        if in_flair_nifti:
+            result, msg, info = run_coreg_to_diff(
+                in_flair_nifti, in_main_anat.replace("mif", "nii.gz"), diff2struct
+            )
+            in_flair_coreg = info["in_seq_coreg"]
+            shutil.copy(in_flair_coreg, analysis_directory)
     # Copy DWI preproc into TractSeg folder
     # to have all the useful data in one folder
     shutil.copy(dwi_preproc, analysis_directory)
