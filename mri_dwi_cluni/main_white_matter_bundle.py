@@ -87,7 +87,19 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
         in_main_anat_nifti = os.path.join(
             preproc_directory, in_main_anat_nifti.split("/")[-1]
         )
-
+    all_sequences_t2w = [
+        seq for seq in all_sequences if "T2w" in seq.split("/")[-1]
+    ]
+    if len(all_sequences_t2w) == 0:
+        in_t2w_nifti_list = None
+    else:
+        in_t2w_nifti_list = []
+        for seq in all_sequences_t2w:
+            shutil.copy(seq, preproc_directory)
+            in_t2w_nifti_list.append(os.path.join(
+                preproc_directory, seq.split("/")[-1]
+            ))
+        sequences_found.append("T2w")
 
     all_sequences_pepolar = [
         seq for seq in all_sequences if "epi" in seq.split("/")[-1]
@@ -209,6 +221,15 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
             )
             in_flair_coreg = info["in_seq_coreg"]
             shutil.copy(in_flair_coreg, analysis_directory)
+
+        if in_t2w_nifti_list:
+            for seq in in_t2w_nifti_list:
+                result, msg, info = run_coreg_to_diff(
+                seq, in_main_anat.replace("mif", "nii.gz"), diff2struct
+                )
+                in_seq_coreg = info["in_seq_coreg"]
+                shutil.copy(in_seq_coreg, analysis_directory)
+
     # Copy DWI preproc into TractSeg folder
     # to have all the useful data in one folder
     shutil.copy(dwi_preproc, analysis_directory)
