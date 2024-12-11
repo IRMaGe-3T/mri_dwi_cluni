@@ -9,7 +9,7 @@ import os
 from useful import execute_command, get_shell
 
 
-def run_processing_fod(in_dwi, brain_mask):
+def run_processing_fod(in_dwi, brain_mask, partial_brain=False):
     """
     Get response function estimation and estimate Fiber
     Orientation Distributions (FOD) using MRTrix command
@@ -40,7 +40,7 @@ def run_processing_fod(in_dwi, brain_mask):
         ]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch dwi2response (exit code {result})"
+            msg = f"Can not launch dwi2response (exit code {result})"
             return 0, msg, info
         # FOD
         wm_fod = os.path.join(dir_name, "wmfod.mif")
@@ -61,7 +61,7 @@ def run_processing_fod(in_dwi, brain_mask):
         ]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch FOD (exit code {result})"
+            msg = f"Can not launch FOD (exit code {result})"
             return 0, msg, info
 
         # Normalise
@@ -81,7 +81,7 @@ def run_processing_fod(in_dwi, brain_mask):
         ]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch normalise (exit code {result})"
+            msg = f"Can not launch normalise (exit code {result})"
             return 0, msg, info
         wm_fod = wm_fod_norm
     else:
@@ -90,14 +90,14 @@ def run_processing_fod(in_dwi, brain_mask):
         cmd = ["dwi2response", "tournier", in_dwi, wm]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch dwi2response (exit code {result})"
+            msg = f"Can not launch dwi2response (exit code {result})"
             return 0, msg, info
         # FOD
         wm_fod = os.path.join(dir_name, "wmfod.mif")
         cmd = ["dwi2fod", "csd", in_dwi, "-mask", brain_mask, wm, wm_fod]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch FOD (exit code {result})"
+            msg = f"Can not launch FOD (exit code {result})"
             return 0, msg, info
 
     # Extract peaks
@@ -105,9 +105,20 @@ def run_processing_fod(in_dwi, brain_mask):
     cmd = ["sh2peaks", wm_fod, peaks]
     result, stderrl, sdtoutl = execute_command(cmd)
     if result != 0:
-        msg = f"Can not lunch sh2peaks (exit code {result})"
+        msg = f"Can not launch sh2peaks (exit code {result})"
         return 0, msg, info
     info = {"peaks": peaks}
     msg = "FOD estimation done"
+
+     # Tckgen
+    if partial_brain:
+        msg += " + tckgen done"
+        tracto = os.path.join(dir_name, "tracto_5000000.tck")
+        cmd = ["tckgen", wm_fod, "-seed_dynamic", wm_fod, "-mask", brain_mask,
+        tracto, "-select", "5000000", "-minlength", "20"]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = f"Can not launch tckgen (exit code {result})"
+            return 0, msg, info
     mylog.info(msg)
     return 1, msg, info

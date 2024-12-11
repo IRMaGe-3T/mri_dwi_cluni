@@ -15,7 +15,7 @@ from processing_tractseg import run_tractseg
 from useful import convert_mif_to_nifti, convert_nifti_to_mif, get_shell
 
 
-def run_white_matter_bundle(out_directory, patient_name, sess_name):
+def run_white_matter_bundle(out_directory, patient_name, sess_name, partial_brain=False):
     """
     Get all data and run preprocessing and processing
     """
@@ -184,10 +184,12 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
             rpe=RPE,
             shell=SHELL,
             in_pepolar=in_pepolar,
+            partial_brain=partial_brain
         )
     else:
         result, msg, info = run_preproc_dwi(
-            in_dwi, pe_dir, readout_time, shell=SHELL
+            in_dwi, pe_dir, readout_time, shell=SHELL,
+            partial_brain=partial_brain
         )
     if result == 0:
         print("\nIssue during preprocessing")
@@ -196,7 +198,7 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     brain_mask = info["brain_mask"]
 
     # DWI response and FOD
-    result, msg, info = run_processing_fod(dwi_preproc, brain_mask)
+    result, msg, info = run_processing_fod(dwi_preproc, brain_mask, partial_brain)
     if result == 0:
         print("\nIssue during FOD estimation")
         return 0, msg
@@ -206,7 +208,7 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     )
 
     # T1 coregistration
-    if in_main_anat:
+    if in_main_anat and not partial_brain:
         result, msg, info = run_preproc_anat(
             in_main_anat.replace("mif", "nii.gz"), dwi_preproc
         )
@@ -235,11 +237,12 @@ def run_white_matter_bundle(out_directory, patient_name, sess_name):
     shutil.copy(dwi_preproc, analysis_directory)
 
     # Tractseg
-    mylog.info("\n----------Start TractSeg----------")
-    result, msg = run_tractseg(peaks_nii)
-    if result == 0:
-        print("\nIssue during TracSeg")
-        return 0, msg
+    if not partial_brain:
+        mylog.info("\n----------Start TractSeg----------")
+        result, msg = run_tractseg(peaks_nii)
+        if result == 0:
+            print("\nIssue during TracSeg")
+            return 0, msg
     msg = "\nProcessing done"
     mylog.info(msg)
     return 1, msg

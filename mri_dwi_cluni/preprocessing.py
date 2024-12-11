@@ -60,7 +60,8 @@ def get_dwifslpreproc_command(
 
 
 def run_preproc_dwi(
-    in_dwi, pe_dir, readout_time, rpe=None, shell=True, in_pepolar=None
+    in_dwi, pe_dir, readout_time, rpe=None, shell=True, in_pepolar=None,
+    partial_brain=False
 ):
     """
     Run preproc for whole brain diffusion using MRtrix command
@@ -120,7 +121,7 @@ def run_preproc_dwi(
             cmd = ["mrmath", in_pepolar, "mean", in_pepolar_mean, "-axis", "3"]
             result, stderrl, sdtoutl = execute_command(cmd)
             if result != 0:
-                msg = f"Can not lunch copy (exit code {result})"
+                msg = f"Can not launch copy (exit code {result})"
                 return 0, msg, info
         else:
             shutil.copy(in_pepolar, in_pepolar_mean)
@@ -135,14 +136,14 @@ def run_preproc_dwi(
         cmd = ["mrmath", in_dwi_b0, "mean", in_dwi_b0_mean, "-axis", "3"]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch mrmath (exit code {result})"
+            msg = f"Can not launch mrmath (exit code {result})"
             return 0, msg, info
         # Concatenate both b0 mean
         b0_pair = os.path.join(dir_name, "b0_pair.mif")
         cmd = ["mrcat", in_dwi_b0_mean, in_pepolar_mean, b0_pair]
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch mrcat (exit code {result})"
+            msg = f"Can not launch mrcat (exit code {result})"
             return 0, msg, info
 
     # Motion distortion correction
@@ -170,7 +171,7 @@ def run_preproc_dwi(
             )
         result, stderrl, sdtoutl = execute_command(cmd)
         if result != 0:
-            msg = f"Can not lunch dwifslpreproc (exit code {result})"
+            msg = f"Can not launch dwifslpreproc (exit code {result})"
             return 0, msg, info
 
     # Bias correction
@@ -178,16 +179,53 @@ def run_preproc_dwi(
     cmd = ["dwibiascorrect", "ants", dwi_out, dwi_unbias]
     result, stderrl, sdtoutl = execute_command(cmd)
     if result != 0:
-        msg = f"Can not lunch bias correction (exit code {result})"
+        msg = f"Can not launch bias correction (exit code {result})"
         return 0, msg
+
+    if partial_brain:
+        # regrid diffusion
+        dwi_unbias_regrid = dwi_unbias.replace(".mif", "_regrid.mif")
+        cmd = ["mrgrid", dwi_unbias, "regrid", "-vox", "1", dwi_unbias_regrid]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mrmath (exit code {result})"
+            return 0, msg
+        dwi_unbias = dwi_unbias_regrid
 
     # Brain mask
     dwi_mask = os.path.join(dir_name, "dwi_brain_mask.mif")
-    cmd = ["dwi2mask", dwi_unbias, dwi_mask]
-    result, stderrl, sdtoutl = execute_command(cmd)
-    if result != 0:
-        msg = "Can not lunch mask (exit code {result})"
-        return 0, msg
+    if partial_brain:
+        # Binary mask of the brain for partial brain
+        # because for optic nerve dwi2mask not ok
+        dwi_unbias_mean = dwi_unbias.replace(".mif", "_mean.mif")
+        cmd = ["mrmath", dwi_unbias, "mean", "-axis", "3", dwi_unbias_mean]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mrmath (exit code {result})"
+            return 0, msg
+        dwi_unbias_mean_thres = dwi_unbias.replace(".mif", "_mean_thres.mif")
+        cmd = ["mrthreshold", dwi_unbias_mean, "-abs", "2", dwi_unbias_mean_thres]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mrthreshold (exit code {result})"
+            return 0, msg
+        dwi_unbias_mean_thres_filt = dwi_unbias.replace(".mif", "_mean_thres_filt.mif")
+        cmd = ["mrfilter", dwi_unbias_mean_thres, "median", dwi_unbias_mean_thres_filt]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mrfilter (exit code {result})"
+            return 0, msg
+        cmd = ["mrfilter", dwi_unbias_mean_thres_filt, "median", dwi_mask]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mrfilter (exit code {result})"
+            return 0, msg
+    else:
+        cmd = ["dwi2mask", dwi_unbias, dwi_mask]
+        result, stderrl, sdtoutl = execute_command(cmd)
+        if result != 0:
+            msg = "Can not launch mask (exit code {result})"
+            return 0, msg
 
     info = {"dwi_preproc": dwi_unbias, "brain_mask": dwi_mask}
     msg = "Preprocessing DWI done"

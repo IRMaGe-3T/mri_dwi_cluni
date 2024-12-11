@@ -44,6 +44,7 @@ class App(QMainWindow):
 
         # Init variable
         self.dicom_directory = ""
+        self.partial_brain = False
         self.reset_progress_bar()
 
     def reset_progress_bar(self):
@@ -74,6 +75,8 @@ class App(QMainWindow):
 
     def launch_processing(self):
         """Launch processing"""
+        if self.checkBox_partial.isChecked():
+            self.partial_brain = True
         if self.dicom_directory:
             self.reset_progress_bar()
             try:
@@ -224,7 +227,8 @@ class App(QMainWindow):
 
                 # Launch processing
                 result, msg = run_white_matter_bundle(
-                    out_directory, patient_name, sess_name
+                    out_directory, patient_name, sess_name,
+                    self.partial_brain
                 )
                 if result == 0:
                     mylog.error(msg)
